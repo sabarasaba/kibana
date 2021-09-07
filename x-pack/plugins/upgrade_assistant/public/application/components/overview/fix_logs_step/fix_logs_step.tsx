@@ -48,7 +48,7 @@ const i18nTexts = {
   ),
 };
 
-const FixLogsStep: FunctionComponent<OverviewStepsProps> = ({ setIsComplete }) => {
+const FixLogsStep: FunctionComponent<Partial<OverviewStepsProps>> = ({ setIsComplete }) => {
   const state = useDeprecationLogging();
 
   return (
@@ -89,7 +89,7 @@ const FixLogsStep: FunctionComponent<OverviewStepsProps> = ({ setIsComplete }) =
             <h4>{i18nTexts.deprecationsCountCheckpointTitle}</h4>
           </EuiText>
           <EuiSpacer size="m" />
-          <DeprecationsCountCheckpoint setIsComplete={setIsComplete} />
+          <DeprecationsCountCheckpoint setIsComplete={setIsComplete!} />
         </>
       )}
     </>
@@ -103,6 +103,6 @@ export const getFixLogsStep = ({ isComplete, setIsComplete }: OverviewStepsProps
     status,
     title: i18nTexts.identifyStepTitle,
     'data-test-subj': `fixLogsStep-${status}`,
-    children: <FixLogsStep isComplete={isComplete} setIsComplete={setIsComplete} />,
+    children: <FixLogsStep setIsComplete={setIsComplete} />,
   };
 };
