@@ -23,10 +23,13 @@ interface Props extends OverviewStepsProps {
 }
 
 export const getBackupStep = ({ cloud, isComplete, setIsComplete }: Props): EuiStepProps => {
+  const status = isComplete ? 'complete' : 'incomplete';
+
   if (cloud?.isCloudEnabled) {
     return {
+      status,
       title,
-      status: isComplete ? 'complete' : 'incomplete',
+      'data-test-subj': `backupStep-${status}`,
       children: (
         <CloudBackup
           cloudSnapshotsUrl={`${cloud!.deploymentUrl}/elasticsearch/snapshots`}
