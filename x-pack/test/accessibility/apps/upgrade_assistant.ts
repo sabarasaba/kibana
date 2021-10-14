@@ -52,7 +52,16 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
   const es = getService('es');
   const log = getService('log');
 
-  describe('Upgrade Assistant', () => {
+  describe('Upgrade Assistant Page', () => {
+    it('Shows coming soon prompt', async () => {
+      await retry.waitFor('Upgrade Assistant coming soon prompt to be visible', async () => {
+        return testSubjects.exists('comingSoonPrompt');
+      });
+      await a11y.testAppSnapshot();
+    });
+  });
+
+  describe.skip('Upgrade Assistant', () => {
     before(async () => {
       await PageObjects.upgradeAssistant.navigateToPage();
 
