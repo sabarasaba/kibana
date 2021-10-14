@@ -56,7 +56,7 @@ export default function upgradeAssistantFunctionalTests({
   const security = getService('security');
   const log = getService('log');
 
-  describe.skip('Upgrade Assistant', function () {
+  describe.skip('Deprecation pages', function () {
     this.tags('skipFirefox');
 
     before(async () => {
