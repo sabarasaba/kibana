@@ -54,6 +54,7 @@ export default function ({ getService, getPageObjects }: FtrProviderContext) {
 
   describe('Upgrade Assistant', () => {
     it('Shows coming soon prompt', async () => {
+      await PageObjects.upgradeAssistant.navigateToPage();
       await retry.waitFor('Upgrade Assistant coming soon prompt to be visible', async () => {
         return testSubjects.exists('comingSoonPrompt');
       });
