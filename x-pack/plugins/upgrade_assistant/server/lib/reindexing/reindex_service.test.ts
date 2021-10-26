@@ -7,7 +7,7 @@
 
 jest.mock('../es_indices_state_check', () => ({ esIndicesStateCheck: jest.fn() }));
 import { BehaviorSubject } from 'rxjs';
-import { TransportResult } from '@elastic/elasticsearch';
+import { RequestEvent } from '@elastic/elasticsearch/lib/Transport';
 import { Logger } from 'src/core/server';
 import { elasticsearchServiceMock, loggingSystemMock } from 'src/core/server/mocks';
 // eslint-disable-next-line @kbn/eslint/no-restricted-paths
@@ -29,10 +29,10 @@ import { versionService } from '../version';
 
 import { ReindexService, reindexServiceFactory } from './reindex_service';
 
-const asApiResponse = <T>(body: T): TransportResult<T> =>
+const asApiResponse = <T>(body: T): RequestEvent<T> =>
   ({
     body,
-  } as TransportResult<T>);
+  } as RequestEvent<T>);
 
 const { currentMajor, prevMajor } = getMockVersionInfo();
 
