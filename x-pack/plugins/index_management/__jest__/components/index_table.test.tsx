@@ -19,7 +19,7 @@ import axiosXhrAdapter from 'axios/lib/adapters/xhr';
       Could not load worker ReferenceError: Worker is not defined
           at createWorker (/<path-to-repo>/node_modules/brace/index.js:17992:5)
  */
-import { mountWithIntl, stubWebWorker } from '@kbn/test-jest-helpers'; // eslint-disable-line no-unused-vars
+import { mountWithIntl } from '@kbn/test-jest-helpers'; // eslint-disable-line no-unused-vars
 
 import { BASE_PATH, API_BASE_PATH } from '../../common/constants';
 import { AppWithoutRouter } from '../../public/application/app';
@@ -40,11 +40,11 @@ import { notificationServiceMock } from '../../../../../src/core/public/notifica
 
 const mockHttpClient = axios.create({ adapter: axiosXhrAdapter });
 
-let server = null;
+let server = sinon.fakeServer.create();
 let store = null;
 const indices = [];
 
-const getBaseFakeIndex = (isOpen) => {
+const getBaseFakeIndex = (isOpen: boolean) => {
   return {
     health: isOpen ? 'green' : 'yellow',
     status: isOpen ? 'open' : 'closed',
@@ -71,7 +71,7 @@ for (let i = 0; i < 105; i++) {
   });
 }
 
-let component = null;
+let component: any = null;
 
 // Resolve outstanding API requests. See https://www.benmvp.com/blog/asynchronous-testing-with-enzyme-react-jest/
 const runAllPromises = () => new Promise(setImmediate);
