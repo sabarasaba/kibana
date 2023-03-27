@@ -24,6 +24,7 @@ import { remoteClustersUrl } from '../../services/documentation';
 import { reactRouterNavigate } from '@kbn/kibana-react-plugin/public';
 import { extractQueryParams, SectionLoading } from '../../../shared_imports';
 import { setBreadcrumbs } from '../../services/breadcrumb';
+import { AddRemoteClusterButton } from './components';
 
 import { RemoteClusterTable } from './remote_cluster_table';
 
@@ -165,17 +166,7 @@ export class RemoteClusterList extends Component {
             </p>
           }
           actions={
-            <EuiButton
-              {...reactRouterNavigate(this.props.history, '/add')}
-              fill
-              iconType="plusInCircle"
-              data-test-subj="remoteClusterEmptyPromptCreateButton"
-            >
-              <FormattedMessage
-                id="xpack.remoteClusters.remoteClusterList.emptyPrompt.connectButtonLabel"
-                defaultMessage="Add a remote cluster"
-              />
-            </EuiButton>
+            <AddRemoteClusterButton history={this.props.history} />
           }
         />
       </EuiPageContent>

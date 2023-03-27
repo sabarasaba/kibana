@@ -5,6 +5,4 @@
  * 2.0.
  */
 
-export { ConnectionStatus } from './connection_status';
-export { RemoveClusterButtonProvider } from './remove_cluster_button_provider';
 export { AddRemoteClusterButton } from './add_remote_cluster_button';

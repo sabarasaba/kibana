@@ -20,12 +20,15 @@ import {
   EuiLink,
   EuiToolTip,
   EuiText,
+  EuiPopover,
+  EuiContextMenuItem,
+  EuiContextMenuPanel,
 } from '@elastic/eui';
 import { reactRouterNavigate } from '@kbn/kibana-react-plugin/public';
 import { UIM_SHOW_DETAILS_CLICK } from '../../../constants';
 import { PROXY_MODE } from '../../../../../common/constants';
 import { trackUiMetric, METRIC_TYPE, getRouter } from '../../../services';
-import { ConnectionStatus, RemoveClusterButtonProvider } from '../components';
+import { AddRemoteClusterButton, ConnectionStatus, RemoveClusterButtonProvider } from '../components';
 
 const getFilteredClusters = (clusters, queryText) => {
   if (queryText) {
@@ -375,17 +378,7 @@ export class RemoteClusterTable extends Component {
         </RemoveClusterButtonProvider>
       ) : undefined,
       toolsRight: (
-        <EuiButton
-          {...reactRouterNavigate(history, '/add')}
-          fill
-          iconType="plusInCircle"
-          data-test-subj="remoteClusterCreateButton"
-        >
-          <FormattedMessage
-            id="xpack.remoteClusters.remoteClusterList.connectButtonLabel"
-            defaultMessage="Add a remote cluster"
-          />
-        </EuiButton>
+        <AddRemoteClusterButton history={history} />
       ),
       onChange: this.onSearch,
       box: {
