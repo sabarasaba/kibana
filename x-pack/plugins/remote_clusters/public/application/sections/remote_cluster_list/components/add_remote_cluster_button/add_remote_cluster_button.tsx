@@ -12,6 +12,8 @@ import {
   EuiButton,
   EuiButtonIcon,
   EuiPopover,
+  EuiFlexItem,
+  EuiFlexGroup,
   useGeneratedHtmlId,
   EuiContextMenuItem,
   EuiContextMenuPanel,
@@ -39,41 +41,47 @@ export function AddRemoteClusterButton({ history }: Props): JSX.Element {
 
   const openPopoverButton = (
     <EuiButtonIcon
-      style={{ marginLeft: '.5rem' }}
       size="m"
-      display="fill"
-      iconType="arrowDown"
+      display="base"
+      iconType="boxesVertical"
       onClick={onButtonClick}
     />
   )
 
   return (
-    <>
-      <EuiButton
-        {...reactRouterNavigate(history, '/add')}
-        fill
-        iconType="plusInCircle"
-        data-test-subj="remoteClusterCreateButton"
-      >
-        <FormattedMessage
-          id="xpack.remoteClusters.remoteClusterList.connectButtonLabel"
-          defaultMessage="Add a remote cluster"
-        />
-      </EuiButton>
-      <EuiPopover
-        id={customContextMenuPopoverId}
-        button={openPopoverButton}
-        isOpen={isPopoverOpen}
-        closePopover={closePopover}
-        panelPaddingSize="none"
-        anchorPosition="downLeft"
-      >
-        <EuiContextMenuPanel>
-          <EuiContextMenuItem key="item-1" icon="indexOpen" size="s" {...reactRouterNavigate(history, '/add')}>
-            Create using old model
-          </EuiContextMenuItem>
-        </EuiContextMenuPanel>
-      </EuiPopover>
-    </>
+    <EuiFlexGroup gutterSize="m">
+      <EuiFlexItem>
+        <EuiButton
+          {...reactRouterNavigate(history, '/add')}
+          fill
+          iconType="plusInCircle"
+          data-test-subj="remoteClusterCreateButton"
+        >
+          <FormattedMessage
+            id="xpack.remoteClusters.remoteClusterList.connectButtonLabel"
+            defaultMessage="Add a remote cluster"
+          />
+        </EuiButton>
+      </EuiFlexItem>
+      <EuiFlexItem>
+        <EuiPopover
+          id={customContextMenuPopoverId}
+          button={openPopoverButton}
+          isOpen={isPopoverOpen}
+          closePopover={closePopover}
+          panelPaddingSize="none"
+          anchorPosition="downLeft"
+        >
+          <EuiContextMenuPanel>
+            <EuiContextMenuItem key="create-using-old-model" icon="plusInCircle" {...reactRouterNavigate(history, '/add')}>
+              <FormattedMessage
+                id="xpack.remoteClusters.remoteClusterList.createUsingOldModelLabel"
+                defaultMessage="Create using old model"
+              />
+            </EuiContextMenuItem>
+          </EuiContextMenuPanel>
+        </EuiPopover>
+      </EuiFlexItem>
+    </EuiFlexGroup>
   );
 }
