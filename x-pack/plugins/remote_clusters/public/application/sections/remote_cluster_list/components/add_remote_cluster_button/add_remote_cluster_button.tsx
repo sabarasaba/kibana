@@ -73,7 +73,7 @@ export function AddRemoteClusterButton({ history }: Props): JSX.Element {
           anchorPosition="downLeft"
         >
           <EuiContextMenuPanel>
-            <EuiContextMenuItem key="create-using-old-model" icon="plusInCircle" {...reactRouterNavigate(history, '/add')}>
+            <EuiContextMenuItem key="create-using-old-model" icon="plusInCircle" {...reactRouterNavigate(history, '/add?withOldModel=true')}>
               <FormattedMessage
                 id="xpack.remoteClusters.remoteClusterList.createUsingOldModelLabel"
                 defaultMessage="Create using old model"

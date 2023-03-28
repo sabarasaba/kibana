@@ -18,6 +18,8 @@ import {
   EuiPageContent_Deprecated as EuiPageContent,
   EuiSpacer,
   EuiPageHeader,
+  EuiTitle,
+  EuiLink,
 } from '@elastic/eui';
 
 import { remoteClustersUrl } from '../../services/documentation';
@@ -144,10 +146,12 @@ export class RemoteClusterList extends Component {
 
   renderEmpty() {
     return (
-      <EuiPageContent verticalPosition="center" horizontalPosition="center" color="subdued">
+      <EuiPageContent verticalPosition="center" horizontalPosition="center" hasBorder={false} hasShadow={false}>
         <EuiEmptyPrompt
           data-test-subj="remoteClusterListEmptyPrompt"
           iconType="managementApp"
+          layout="vertical"
+          color="plain"
           title={
             <h2>
               <FormattedMessage
@@ -165,8 +169,48 @@ export class RemoteClusterList extends Component {
               />
             </p>
           }
-          actions={
-            <AddRemoteClusterButton history={this.props.history} />
+          actions={[
+              <EuiButton
+                {...reactRouterNavigate(this.props.history, '/add')}
+                fill
+                iconType="plusInCircle"
+                data-test-subj="remoteClusterCreateButton"
+              >
+                <FormattedMessage
+                  id="xpack.remoteClusters.remoteClusterList.connectButtonLabel"
+                  defaultMessage="Add a remote cluster"
+                />
+              </EuiButton>,
+              <>
+                <EuiSpacer size="m" />
+                <EuiButtonEmpty
+                  {...reactRouterNavigate(this.props.history, '/add?withOldModel=true')}
+                  data-test-subj="remoteClusterCreateWithOldModelButton"
+                >
+                  <FormattedMessage
+                    id="xpack.remoteClusters.remoteClusterList.createWithOldModel"
+                    defaultMessage="Create using old model?"
+                  />
+                </EuiButtonEmpty>
+              </>
+          ]}
+          footer={
+            <>
+              <EuiTitle size="xxs">
+                <span>
+                  <FormattedMessage
+                    id="xpack.remoteClusters.remoteClusterList.emptyViewFooterText"
+                    defaultMessage="Want to learn more?"
+                  />
+                </span>
+              </EuiTitle>{' '}
+              <EuiLink href={remoteClustersUrl} target="_blank">
+                <FormattedMessage
+                  id="xpack.remoteClusters.remoteClusterList.emptyViewFooterLink"
+                  defaultMessage="Read the documentation"
+                />
+              </EuiLink>
+            </>
           }
         />
       </EuiPageContent>
