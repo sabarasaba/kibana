@@ -15,6 +15,8 @@ import {
   EuiEmptyPrompt,
   EuiPageContent_Deprecated as EuiPageContent,
   EuiSpacer,
+  EuiPageBody,
+  EuiPageContentBody_Deprecated as EuiPageContentBody,
 } from '@elastic/eui';
 
 import { reactRouterNavigate } from '@kbn/kibana-react-plugin/public';
@@ -184,45 +186,47 @@ export class RemoteClusterEdit extends Component {
     }
 
     return (
-      <>
-        <RemoteClusterPageTitle
-          title={
-            <FormattedMessage
-              id="xpack.remoteClusters.editTitle"
-              defaultMessage="Edit remote cluster"
-            />
-          }
-        />
-
-        {hasDeprecatedProxySetting ? (
-          <>
-            <EuiCallOut
-              title={
-                <FormattedMessage
-                  id="xpack.remoteClusters.edit.deprecatedSettingsTitle"
-                  defaultMessage="Proceed with caution"
-                />
-              }
-              color="warning"
-              iconType="help"
-            >
+      <EuiPageBody restrictWidth={true} data-test-subj="edit-remote-cluster">
+        <EuiPageContentBody color="transparent" paddingSize="none">
+          <RemoteClusterPageTitle
+            title={
               <FormattedMessage
-                id="xpack.remoteClusters.edit.deprecatedSettingsMessage"
-                defaultMessage="This remote cluster has deprecated settings that we tried to resolve. Verify all changes before saving."
+                id="xpack.remoteClusters.editTitle"
+                defaultMessage="Edit remote cluster"
               />
-            </EuiCallOut>
-            <EuiSpacer />
-          </>
-        ) : null}
+            }
+          />
 
-        <RemoteClusterForm
-          cluster={cluster}
-          isSaving={isEditingCluster}
-          saveError={getEditClusterError}
-          save={this.save}
-          cancel={this.cancel}
-        />
-      </>
+          {hasDeprecatedProxySetting ? (
+            <>
+              <EuiCallOut
+                title={
+                  <FormattedMessage
+                    id="xpack.remoteClusters.edit.deprecatedSettingsTitle"
+                    defaultMessage="Proceed with caution"
+                  />
+                }
+                color="warning"
+                iconType="help"
+              >
+                <FormattedMessage
+                  id="xpack.remoteClusters.edit.deprecatedSettingsMessage"
+                  defaultMessage="This remote cluster has deprecated settings that we tried to resolve. Verify all changes before saving."
+                />
+              </EuiCallOut>
+              <EuiSpacer />
+            </>
+          ) : null}
+
+          <RemoteClusterForm
+            cluster={cluster}
+            isSaving={isEditingCluster}
+            saveError={getEditClusterError}
+            save={this.save}
+            cancel={this.cancel}
+          />
+        </EuiPageContentBody>
+      </EuiPageBody>
     );
   }
 }
