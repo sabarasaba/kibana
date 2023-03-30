@@ -18,6 +18,8 @@ import {
   EuiPageContent_Deprecated as EuiPageContent,
   EuiSpacer,
   EuiPageHeader,
+  EuiPageBody,
+  EuiPageContentBody_Deprecated as EuiPageContentBody,
 } from '@elastic/eui';
 
 import { remoteClustersUrl } from '../../services/documentation';
@@ -204,35 +206,37 @@ export class RemoteClusterList extends Component {
     const { clusters } = this.props;
 
     return (
-      <>
-        <EuiPageHeader
-          bottomBorder
-          pageTitle={
-            <FormattedMessage
-              id="xpack.remoteClusters.remoteClusterListTitle"
-              defaultMessage="Remote Clusters"
-            />
-          }
-          rightSideItems={[
-            <EuiButtonEmpty
-              href={remoteClustersUrl}
-              target="_blank"
-              iconType="help"
-              data-test-subj="documentationLink"
-            >
+      <EuiPageBody restrictWidth={true} data-test-subj="remote-clusters-list">
+        <EuiPageContentBody color="transparent" paddingSize="none">
+          <EuiPageHeader
+            bottomBorder
+            pageTitle={
               <FormattedMessage
-                id="xpack.remoteClusters.remoteClustersDocsLinkText"
-                defaultMessage="Remote Clusters docs"
+                id="xpack.remoteClusters.remoteClusterListTitle"
+                defaultMessage="Remote Clusters"
               />
-            </EuiButtonEmpty>,
-          ]}
-        />
+            }
+            rightSideItems={[
+              <EuiButtonEmpty
+                href={remoteClustersUrl}
+                target="_blank"
+                iconType="help"
+                data-test-subj="documentationLink"
+              >
+                <FormattedMessage
+                  id="xpack.remoteClusters.remoteClustersDocsLinkText"
+                  defaultMessage="Remote Clusters docs"
+                />
+              </EuiButtonEmpty>,
+            ]}
+          />
 
-        <EuiSpacer size="l" />
+          <EuiSpacer size="l" />
 
-        <RemoteClusterTable clusters={clusters} />
-        <DetailPanel />
-      </>
+          <RemoteClusterTable clusters={clusters} />
+          <DetailPanel />
+        </EuiPageContentBody>
+      </EuiPageBody>
     );
   }
 
