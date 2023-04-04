@@ -16,6 +16,7 @@ export declare const renderApp: (
     isCloudEnabled: boolean;
     cloudBaseUrl: string;
     executionContext: ExecutionContextStart;
+    canUseNewAuthModel: boolean;
   },
   history: ScopedHistory,
   theme$: Observable<CoreTheme>

@@ -12,6 +12,7 @@ export interface Context {
   isCloudEnabled: boolean;
   cloudBaseUrl: string;
   executionContext: ExecutionContextStart;
+  canUseNewAuthModel: boolean;
 }
 
 export const AppContext = createContext<Context>({} as any);

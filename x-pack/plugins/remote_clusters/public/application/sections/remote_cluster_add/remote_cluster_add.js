@@ -22,15 +22,20 @@ import {
   EuiButton,
 } from '@elastic/eui';
 
+
+import { AppContext, Context } from '../../app_context';
 import { extractQueryParams } from '../../../shared_imports';
 import { getRouter, redirect } from '../../services';
 import { setBreadcrumbs } from '../../services/breadcrumb';
 import { RemoteClusterPageTitle, RemoteClusterForm } from '../components';
 
-const CREATE_CONNECTION = 0;
-const AUTH_METHOD = 1;
+const CREATE_CONNECTION = 1;
+const AUTH_METHOD = 2;
 
 export class RemoteClusterAdd extends PureComponent {
+  static contextType = AppContext;
+  canUseNewAuthModel = false;
+
   static propTypes = {
     addCluster: PropTypes.func,
     isAddingCluster: PropTypes.bool,
@@ -41,8 +46,9 @@ export class RemoteClusterAdd extends PureComponent {
   constructor(props, context) {
     super(props, context);
 
+    this.canUseNewAuthModel = this.context.canUseNewAuthModel;
     this.state = {
-      currentStep: AUTH_METHOD,
+      currentStep: CREATE_CONNECTION,
     };
   }
 
@@ -79,8 +85,11 @@ export class RemoteClusterAdd extends PureComponent {
   }
 
   save = (clusterConfig) => {
-    this.setState({ currentStep: 1 })
-    // this.props.addCluster(clusterConfig);
+    this.props.addCluster(clusterConfig).then(() => {
+      if (this.canUseNewAuthModel) {
+        this.setState({ currentStep: 1 })
+      }
+    });
   };
 
   cancel = () => {
@@ -122,8 +131,12 @@ export class RemoteClusterAdd extends PureComponent {
             }
           />
 
-          <EuiStepsHorizontal steps={this.getStepDefinitions()} />
-          <EuiSpacer size="m" />
+          {this.canUseNewAuthModel && (
+            <>
+              <EuiStepsHorizontal steps={this.getStepDefinitions()} />
+              <EuiSpacer size="m" />
+            </>
+          )}
 
           {currentStep === CREATE_CONNECTION && (
             <RemoteClusterForm
