@@ -51,6 +51,8 @@ export {
   getFormRow,
   Field,
   ToggleField,
+  TextField,
+  NumericField,
   JsonEditorField,
 } from '@kbn/es-ui-shared-plugin/static/forms/components';
 
