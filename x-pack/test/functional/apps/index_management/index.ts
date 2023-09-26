@@ -14,5 +14,6 @@ export default ({ loadTestFile }: FtrProviderContext) => {
     loadTestFile(require.resolve('./index_template_wizard'));
     loadTestFile(require.resolve('./enrich_policies_tab'));
     loadTestFile(require.resolve('./create_enrich_policy'));
+    loadTestFile(require.resolve('./data_streams_tab'));
   });
 };
