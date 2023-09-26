@@ -68,4 +68,11 @@ export type TestSubjects =
   | 'createIndexButton'
   | 'createIndexNameFieldText'
   | 'createIndexCancelButton'
+  | 'manageDataStreamButton'
+  | 'policyNameField'
+  | 'configuredByILMWarning'
+  | 'show-filters-button'
+  | 'filter-option-h'
+  | 'infiniteRetentionPeriod.input'
+  | 'saveButton'
   | 'createIndexSaveButton';
