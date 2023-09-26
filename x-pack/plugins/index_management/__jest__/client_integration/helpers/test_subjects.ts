@@ -77,7 +77,7 @@ export type TestSubjects =
   | 'createIndexNameFieldText'
   | 'createIndexCancelButton'
   | 'manageDataStreamButton'
-  | 'policyNameField'
+  | 'dataRetentionValue'
   | 'configuredByILMWarning'
   | 'show-filters-button'
   | 'filter-option-h'
