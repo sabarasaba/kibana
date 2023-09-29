@@ -5,6 +5,7 @@
  * 2.0.
  */
 
+import { isEmpty } from 'lodash';
 import { schema, TypeOf } from '@kbn/config-schema';
 
 import { IScopedClusterClient } from '@kbn/core/server';
@@ -22,14 +23,17 @@ const enhanceDataStreams = ({
   dataStreams,
   dataStreamsStats,
   dataStreamsPrivileges,
+  hasIlmPolicyWithDeletePhase,
 }: {
   dataStreams: IndicesDataStream[];
   dataStreamsStats?: IndicesDataStreamsStatsDataStreamsStatsItem[];
   dataStreamsPrivileges?: SecurityHasPrivilegesResponse;
+  hasIlmPolicyWithDeletePhase?: boolean;
 }): EnhancedDataStreamFromEs[] => {
   return dataStreams.map((dataStream) => {
     const enhancedDataStream: EnhancedDataStreamFromEs = {
       ...dataStream,
+      hasIlmPolicyWithDeletePhase,
       privileges: {
         delete_index: dataStreamsPrivileges
           ? dataStreamsPrivileges.index[dataStream.name].delete_index
@@ -57,6 +61,18 @@ const getDataStreams = (client: IScopedClusterClient, name = '*') => {
     name,
     expand_wildcards: 'all',
   });
+};
+
+const getILMPolicy = async (client: IScopedClusterClient, name = '*') => {
+  const matchingPolicies = await client.asCurrentUser.ilm.getLifecycle({
+    name,
+  });
+
+  if (matchingPolicies[name]) {
+    return matchingPolicies[name];
+  }
+
+  return null;
 };
 
 const getDataStreamsStats = (client: IScopedClusterClient, name = '*') => {
@@ -140,14 +156,25 @@ export function registerGetOneRoute({ router, lib: { handleEsError }, config }: 
 
         if (dataStreams[0]) {
           let dataStreamsPrivileges;
+          let hasIlmPolicyWithDeletePhase;
+
           if (config.isSecurityEnabled()) {
             dataStreamsPrivileges = await getDataStreamsPrivileges(client, [dataStreams[0].name]);
+          }
+
+          // if (dataStreams[0].ilm_policy) {
+          if (true) {
+            // const ilmPolicy = await getILMPolicy(client, dataStreams[0].ilm_policy);
+            const ilmPolicy = await getILMPolicy(client, 'asd');
+
+            hasIlmPolicyWithDeletePhase = !isEmpty(ilmPolicy?.policy?.phases?.delete);
           }
 
           const enhancedDataStreams = enhanceDataStreams({
             dataStreams,
             dataStreamsStats,
             dataStreamsPrivileges,
+            hasIlmPolicyWithDeletePhase,
           });
           const body = deserializeDataStream(enhancedDataStreams[0]);
           return response.ok({ body });

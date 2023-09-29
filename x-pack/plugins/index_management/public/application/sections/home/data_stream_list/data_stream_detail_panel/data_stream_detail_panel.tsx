@@ -359,7 +359,7 @@ export const DataStreamDetailPanel: React.FunctionComponent<Props> = ({
         />
       )}
 
-      {isEditingDataRetention && (
+      {isEditingDataRetention && dataStream && (
         <EditDataRetentionModal
           onClose={(data) => {
             if (data && data?.hasUpdatedDataRetention) {
@@ -368,9 +368,7 @@ export const DataStreamDetailPanel: React.FunctionComponent<Props> = ({
               setIsEditingDataRetention(false);
             }
           }}
-          dataStreamName={dataStreamName}
-          configuredByILM={!!dataStream?.ilmPolicyName}
-          dataRetention={dataStream?.lifecycle?.data_retention as string}
+          dataStream={dataStream}
         />
       )}
 

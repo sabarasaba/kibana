@@ -23,6 +23,7 @@ export function deserializeDataStream(dataStreamFromEs: EnhancedDataStreamFromEs
     privileges,
     hidden,
     lifecycle,
+    hasIlmPolicyWithDeletePhase,
   } = dataStreamFromEs;
 
   return {
@@ -39,6 +40,7 @@ export function deserializeDataStream(dataStreamFromEs: EnhancedDataStreamFromEs
     health: status.toLowerCase() as Health, // ES typically returns status in all-caps
     indexTemplateName: template,
     ilmPolicyName,
+    hasIlmPolicyWithDeletePhase,
     storageSize,
     storageSizeBytes,
     maxTimeStamp,

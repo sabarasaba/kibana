@@ -32,15 +32,14 @@ import {
   NumericField,
 } from '../../../../../shared_imports';
 
+import { DataStream } from '../../../../../../common';
 import { splitSizeAndUnits } from '../../../../../../common';
 import { useAppContext } from '../../../../app_context';
 import { UnitField } from './unit_field';
 import { updateDataRetention } from '../../../../services/api';
 
 interface Props {
-  dataRetention: string;
-  dataStreamName: string;
-  configuredByILM: boolean;
+  dataStream: DataStream;
   onClose: (data?: { hasUpdatedDataRetention: boolean }) => void;
 }
 
@@ -169,11 +168,13 @@ const configurationFormSchema: FormSchema = {
 };
 
 export const EditDataRetentionModal: React.FunctionComponent<Props> = ({
-  dataRetention,
-  dataStreamName,
-  configuredByILM,
+  dataStream,
   onClose,
 }) => {
+  const dataStreamName = dataStream?.name as string;
+  const configuredByILM = dataStream?.ilmPolicyName;
+  const dataRetention = dataStream?.lifecycle?.data_retention as string;
+
   const { size, unit } = splitSizeAndUnits(dataRetention);
   const {
     services: { notificationService },
@@ -267,14 +268,14 @@ export const EditDataRetentionModal: React.FunctionComponent<Props> = ({
             componentProps={{
               fullWidth: false,
               euiFieldProps: {
-                disabled: formData.infiniteRetentionPeriod,
+                disabled: dataStream?.hasIlmPolicyWithDeletePhase ? false : formData.infiniteRetentionPeriod,
                 'data-test-subj': `dataRetentionValue`,
                 min: 1,
                 append: (
                   <UnitField
                     path="timeUnit"
                     options={timeUnits}
-                    disabled={formData.infiniteRetentionPeriod}
+                    disabled={dataStream?.hasIlmPolicyWithDeletePhase ? false : formData.infiniteRetentionPeriod}
                     euiFieldProps={{
                       'data-test-subj': 'timeUnit',
                       'aria-label': i18n.translate(
@@ -294,6 +295,11 @@ export const EditDataRetentionModal: React.FunctionComponent<Props> = ({
             path="infiniteRetentionPeriod"
             component={ToggleField}
             data-test-subj="infiniteRetentionPeriod"
+            componentProps={{
+              euiFieldProps: {
+                disabled: dataStream?.hasIlmPolicyWithDeletePhase
+              }
+            }}
           />
 
           <EuiSpacer />
