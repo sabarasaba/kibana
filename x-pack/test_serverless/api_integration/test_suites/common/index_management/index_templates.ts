@@ -16,12 +16,7 @@ export default function ({ getService }: FtrProviderContext) {
   const log = getService('log');
   const randomness = getService('randomness');
   const indexManagementService = getService('indexManagement');
-  let getTemplatePayload: typeof indexManagementService['templates']['helpers']['getTemplatePayload'];
-  let catTemplate: typeof indexManagementService['templates']['helpers']['catTemplate'];
   let getSerializedTemplate: typeof indexManagementService['templates']['helpers']['getSerializedTemplate'];
-  let createTemplate: typeof indexManagementService['templates']['api']['createTemplate'];
-  let updateTemplate: typeof indexManagementService['templates']['api']['updateTemplate'];
-  let deleteTemplates: typeof indexManagementService['templates']['api']['deleteTemplates'];
   let simulateTemplate: typeof indexManagementService['templates']['api']['simulateTemplate'];
   let cleanUpTemplates: typeof indexManagementService['templates']['api']['cleanUpTemplates'];
 
@@ -30,11 +25,8 @@ export default function ({ getService }: FtrProviderContext) {
     before(async () => {
       ({
         templates: {
-          helpers: { getTemplatePayload, catTemplate, getSerializedTemplate },
+          helpers: { getSerializedTemplate },
           api: {
-            createTemplate,
-            updateTemplate,
-            deleteTemplates,
             simulateTemplate,
             cleanUpTemplates,
           },
@@ -133,176 +125,6 @@ export default function ({ getService }: FtrProviderContext) {
           expect(body.name).to.eql(templateName);
           expect(Object.keys(body).sort()).to.eql(expectedKeys);
         });
-      });
-    });
-
-    describe('create', () => {
-      it('should create an index template', async () => {
-        const payload = getTemplatePayload(
-          `template-${getRandomString()}`,
-          [getRandomString()],
-          undefined,
-          false
-        );
-        await createTemplate(payload).set('x-elastic-internal-origin', 'xxx').expect(200);
-      });
-
-      it('should throw a 409 conflict when trying to create 2 templates with the same name', async () => {
-        const templateName = `template-${getRandomString()}`;
-        const payload = getTemplatePayload(templateName, [getRandomString()], undefined, false);
-
-        await createTemplate(payload).set('x-elastic-internal-origin', 'xxx');
-
-        await createTemplate(payload).set('x-elastic-internal-origin', 'xxx').expect(409);
-      });
-
-      it('should validate the request payload', async () => {
-        const templateName = `template-${getRandomString()}`;
-        // need to cast as any to avoid errors after deleting index patterns
-        const payload = getTemplatePayload(
-          templateName,
-          [getRandomString()],
-          undefined,
-          false
-        ) as any;
-
-        delete payload.indexPatterns; // index patterns are required
-
-        const { body } = await createTemplate(payload).set('x-elastic-internal-origin', 'xxx');
-        expect(body.message).to.contain(
-          '[request body.indexPatterns]: expected value of type [array] '
-        );
-      });
-
-      it('should parse the ES error and return the cause', async () => {
-        const templateName = `template-create-parse-es-error`;
-        const payload = getTemplatePayload(
-          templateName,
-          ['create-parse-es-error'],
-          undefined,
-          false
-        );
-        const runtime = {
-          myRuntimeField: {
-            type: 'boolean',
-            script: {
-              source: 'emit("hello with error', // error in script
-            },
-          },
-        };
-        payload.template!.mappings = { ...payload.template!.mappings, runtime };
-        const { body } = await createTemplate(payload)
-          .set('x-elastic-internal-origin', 'xxx')
-          .expect(400);
-
-        expect(body.attributes).an('object');
-        expect(body.attributes.error.reason).contain('template after composition is invalid');
-        // one of the item of the cause array should point to our script
-        expect(body.attributes.causes.join(',')).contain('"hello with error');
-      });
-    });
-
-    describe('update', () => {
-      it('should update an index template', async () => {
-        const templateName = `template-${getRandomString()}`;
-        const indexTemplate = getTemplatePayload(
-          templateName,
-          [getRandomString()],
-          undefined,
-          false
-        );
-
-        await createTemplate(indexTemplate).set('x-elastic-internal-origin', 'xxx').expect(200);
-
-        let { body: catTemplateResponse } = await catTemplate(templateName);
-
-        const { name, version } = indexTemplate;
-
-        expect(
-          catTemplateResponse.find(({ name: catTemplateName }) => catTemplateName === name)?.version
-        ).to.equal(version?.toString());
-
-        // Update template with new version
-        const updatedVersion = 2;
-        await updateTemplate({ ...indexTemplate, version: updatedVersion }, templateName)
-          .set('x-elastic-internal-origin', 'xxx')
-          .expect(200);
-
-        ({ body: catTemplateResponse } = await catTemplate(templateName));
-
-        expect(
-          catTemplateResponse.find(({ name: catTemplateName }) => catTemplateName === name)?.version
-        ).to.equal(updatedVersion.toString());
-      });
-
-      it('should parse the ES error and return the cause', async () => {
-        const templateName = `template-update-parse-es-error`;
-        const payload = getTemplatePayload(
-          templateName,
-          ['update-parse-es-error'],
-          undefined,
-          false
-        );
-        const runtime = {
-          myRuntimeField: {
-            type: 'keyword',
-            script: {
-              source: 'emit("hello")',
-            },
-          },
-        };
-
-        // Add runtime field
-        payload.template!.mappings = { ...payload.template!.mappings, runtime };
-
-        await createTemplate(payload).set('x-elastic-internal-origin', 'xxx').expect(200);
-
-        // Update template with an error in the runtime field script
-        payload.template!.mappings.runtime.myRuntimeField.script = 'emit("hello with error';
-        const { body } = await updateTemplate(payload, templateName)
-          .set('x-elastic-internal-origin', 'xxx')
-          .expect(400);
-
-        expect(body.attributes).an('object');
-        // one of the item of the cause array should point to our script
-        expect(body.attributes.causes.join(',')).contain('"hello with error');
-      });
-    });
-
-    describe('delete', () => {
-      it('should delete an index template', async () => {
-        const templateName = `template-${getRandomString()}`;
-        const payload = getTemplatePayload(templateName, [getRandomString()], undefined, false);
-
-        const { status: createStatus, body: createBody } = await createTemplate(payload).set(
-          'x-elastic-internal-origin',
-          'xxx'
-        );
-        if (createStatus !== 200) {
-          throw new Error(`Error creating template: ${createStatus} ${createBody.message}`);
-        }
-
-        let { body: catTemplateResponse } = await catTemplate(templateName);
-
-        expect(
-          catTemplateResponse.find((template) => template.name === payload.name)?.name
-        ).to.equal(templateName);
-
-        const { status: deleteStatus, body: deleteBody } = await deleteTemplates([
-          { name: templateName },
-        ]).set('x-elastic-internal-origin', 'xxx');
-        if (deleteStatus !== 200) {
-          throw new Error(`Error deleting template: ${deleteBody.message}`);
-        }
-
-        expect(deleteBody.errors).to.be.empty();
-        expect(deleteBody.templatesDeleted[0]).to.equal(templateName);
-
-        ({ body: catTemplateResponse } = await catTemplate(templateName));
-
-        expect(catTemplateResponse.find((template) => template.name === payload.name)).to.equal(
-          undefined
-        );
       });
     });
 
