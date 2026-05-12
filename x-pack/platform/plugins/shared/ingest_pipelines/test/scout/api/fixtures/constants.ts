@@ -5,6 +5,10 @@
  * 2.0.
  */
 
+import { API_BASE_PATH } from '../../../../common/constants';
+
+export { API_BASE_PATH };
+
 export const COMMON_HEADERS = {
   'kbn-xsrf': 'some-xsrf-token',
   'x-elastic-internal-origin': 'kibana',
@@ -12,7 +16,6 @@ export const COMMON_HEADERS = {
 };
 
 export const CAPABILITIES_API_PATH = '/api/core/capabilities';
-export const API_BASE_PATH = 'api/ingest_pipelines';
 export const DATABASES_API_BASE_PATH = `${API_BASE_PATH}/databases`;
 export const PARSE_CSV_API_PATH = `${API_BASE_PATH}/parse_csv`;
 export const STRUCTURE_TREE_API_BASE_PATH = `${API_BASE_PATH}/structure_tree`;
