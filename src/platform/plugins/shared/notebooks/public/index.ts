@@ -7,8 +7,13 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import type { LinkId } from './deep_links';
+import type { PluginInitializerContext } from '@kbn/core/public';
+import { NotebooksPlugin } from './plugin';
 
-export const DEV_TOOLS_APP_ID = 'dev_tools';
+export type { NotebooksPluginSetup, NotebooksPluginStart } from './types';
 
-export const deepLinkIds: LinkId[] = ['searchprofiler', 'painless_lab', 'grokdebugger', 'console', 'notebooks'];
+export { NotebooksPlugin as Plugin };
+
+export function plugin(_ctx: PluginInitializerContext) {
+  return new NotebooksPlugin();
+}

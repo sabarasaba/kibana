@@ -18,6 +18,8 @@ const langSpecificWorkerIds = [
   PAINLESS_LANG_ID,
   YAML_LANG_ID,
   CONSOLE_LANG_ID,
+  'javascript',
+  'typescript',
 ] as const;
 
 // exported for use in webpack config to build workers

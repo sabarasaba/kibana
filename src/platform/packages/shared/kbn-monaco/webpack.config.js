@@ -21,6 +21,9 @@ const getWorkerEntry = (language) => {
       return 'monaco-editor/esm/vs/editor/editor.worker.js';
     case 'json':
       return 'monaco-editor/esm/vs/language/json/json.worker.js';
+    case 'javascript':
+    case 'typescript':
+      return 'monaco-editor/esm/vs/language/typescript/ts.worker.js';
     default:
       return path.resolve(
         __dirname,
@@ -104,4 +107,4 @@ const workerConfig = (languages) => ({
   },
 });
 
-module.exports = workerConfig(['default', 'json', 'xjson', 'painless', 'yaml', 'console']);
+module.exports = workerConfig(['default', 'json', 'xjson', 'painless', 'yaml', 'console', 'javascript', 'typescript']);

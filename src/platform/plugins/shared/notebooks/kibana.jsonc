@@ -1,0 +1,15 @@
+{
+  "type": "plugin",
+  "id": "@kbn/notebooks-plugin",
+  "owner": ["@elastic/kibana-management"],
+  "group": "platform",
+  "visibility": "shared",
+  "plugin": {
+    "id": "notebooks",
+    "browser": true,
+    "server": false,
+    "requiredPlugins": ["devTools"],
+    "optionalPlugins": [],
+    "requiredBundles": []
+  }
+}

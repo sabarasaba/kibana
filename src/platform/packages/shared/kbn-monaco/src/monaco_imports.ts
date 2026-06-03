@@ -47,6 +47,7 @@ import 'monaco-editor/esm/vs/editor/contrib/inlayHints/browser/inlayHintsControl
 import 'monaco-editor/esm/vs/editor/common/services/treeViewsDndService.js';
 
 import 'monaco-editor/esm/vs/language/json/monaco.contribution.js';
+import 'monaco-editor/esm/vs/language/typescript/monaco.contribution'; // Needed for full JavaScript/TypeScript language service
 import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js'; // Needed for basic javascript support
 import 'monaco-editor/esm/vs/basic-languages/xml/xml.contribution.js'; // Needed for basic xml support
 import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution'; // Needed for yaml support

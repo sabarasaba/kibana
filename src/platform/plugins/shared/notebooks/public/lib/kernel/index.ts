@@ -7,8 +7,5 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import type { LinkId } from './deep_links';
-
-export const DEV_TOOLS_APP_ID = 'dev_tools';
-
-export const deepLinkIds: LinkId[] = ['searchprofiler', 'painless_lab', 'grokdebugger', 'console', 'notebooks'];
+export { Kernel } from './kernel';
+export type { KernelEvents } from './kernel';
