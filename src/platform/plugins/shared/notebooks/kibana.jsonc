@@ -9,7 +9,7 @@
     "browser": true,
     "server": false,
     "requiredPlugins": ["devTools"],
-    "optionalPlugins": [],
+    "optionalPlugins": ["console"],
     "requiredBundles": []
   }
 }

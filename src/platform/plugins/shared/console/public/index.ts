@@ -19,6 +19,7 @@ export type {
   ConsolePluginStart,
   EmbeddedConsoleView,
   EmbeddedConsoleViewButtonProps,
+  EsAutocompleteFacade,
 } from './types';
 
 export { ConsoleUIPlugin as Plugin };

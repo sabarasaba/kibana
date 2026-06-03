@@ -8,8 +8,9 @@
  */
 
 import { i18n } from '@kbn/i18n';
-import type { Plugin, CoreSetup, CoreStart, PluginInitializerContext } from '@kbn/core/public';
+import type { Plugin, CoreSetup, CoreStart, PluginInitializerContext, HttpSetup } from '@kbn/core/public';
 import { ENABLE_PERSISTENT_CONSOLE_UI_SETTING_ID } from '@kbn/dev-tools-plugin/public';
+import { monaco, CONSOLE_LANG_ID } from '@kbn/monaco';
 
 import { EmbeddableConsole } from './application/containers/embeddable';
 import type {
@@ -129,10 +130,10 @@ export class ConsoleUIPlugin
         },
       });
 
-      return { locator };
+      return { locator, getEsAutocompleteFacade: () => createEsAutocompleteFacade(http) };
     }
 
-    return {};
+    return { getEsAutocompleteFacade: () => createEsAutocompleteFacade(http) };
   }
 
   public start(core: CoreStart, deps: AppStartUIPluginDependencies): ConsolePluginStart {
@@ -180,4 +181,115 @@ export class ConsoleUIPlugin
 
     return consoleStart;
   }
+}
+
+// ---------------------------------------------------------------------------
+// ES autocomplete facade — exposed via ConsolePluginSetup for other plugins
+// ---------------------------------------------------------------------------
+
+function createEsAutocompleteFacade(http: HttpSetup) {
+  let specsLoading: Promise<void> | null = null;
+  const ensureLoaded = () => {
+    if (!specsLoading) {
+      specsLoading = import('./lib/kb/kb').then(({ loadActiveApi }) => loadActiveApi(http));
+    }
+    return specsLoading;
+  };
+
+  const perModelProviders = new Map<string, any>();
+
+  return {
+    requestCellProvider: {
+      triggerCharacters: [' ', '\n', '/'],
+      async provideCompletionItems(
+        model: monaco.editor.ITextModel,
+        position: monaco.Position,
+        context: monaco.languages.CompletionContext
+      ) {
+        await ensureLoaded();
+        let provider = perModelProviders.get(model.id);
+        if (!provider) {
+          const editor = monaco.editor.getEditors().find((e) => e.getModel()?.id === model.id);
+          if (!editor) return { suggestions: [] };
+          const { MonacoEditorActionsProvider } = await import(
+            './application/containers/editor/monaco_editor_actions_provider'
+          );
+          provider = new MonacoEditorActionsProvider(editor, () => {}, '');
+          perModelProviders.set(model.id, provider);
+          model.onWillDispose(() => perModelProviders.delete(model.id));
+        }
+        return provider.provideCompletionItems(model, position, context);
+      },
+    } as monaco.languages.CompletionItemProvider,
+
+    async completeUrl(
+      method: string,
+      pathBeforeCursor: string,
+      actualModel: monaco.editor.ITextModel,
+      actualPosition: monaco.Position
+    ): Promise<monaco.languages.CompletionList> {
+      await ensureLoaded();
+      const { getUrlPathCompletionItems } = await import(
+        './application/containers/editor/utils/autocomplete_utils'
+      );
+      const syntheticContent = `${method.toUpperCase()} ${pathBeforeCursor}`;
+      const syntheticModel = monaco.editor.createModel(syntheticContent, CONSOLE_LANG_ID);
+      const syntheticPosition = {
+        lineNumber: 1,
+        column: syntheticContent.length + 1,
+      } as monaco.Position;
+      try {
+        const items = getUrlPathCompletionItems(syntheticModel, syntheticPosition);
+        const wordUntil = actualModel.getWordUntilPosition(actualPosition);
+        const range = {
+          startLineNumber: actualPosition.lineNumber,
+          endLineNumber: actualPosition.lineNumber,
+          startColumn: wordUntil.startColumn,
+          endColumn: actualPosition.column,
+        };
+        return { suggestions: items.map((item) => ({ ...item, range })) };
+      } finally {
+        syntheticModel.dispose();
+      }
+    },
+
+    async completeBody(
+      method: string,
+      path: string,
+      bodyBeforeCursor: string,
+      actualModel: monaco.editor.ITextModel,
+      actualPosition: monaco.Position
+    ): Promise<monaco.languages.CompletionList> {
+      await ensureLoaded();
+      const { getBodyCompletionItems } = await import(
+        './application/containers/editor/utils/autocomplete_utils'
+      );
+      const methodLine = `${method.toUpperCase()} ${path}`;
+      const syntheticContent = `${methodLine}\n${bodyBeforeCursor}`;
+      const syntheticModel = monaco.editor.createModel(syntheticContent, CONSOLE_LANG_ID);
+      const bodyLines = bodyBeforeCursor.split('\n');
+      const syntheticPosition = {
+        lineNumber: 1 + bodyLines.length,
+        column: bodyLines[bodyLines.length - 1].length + 1,
+      } as monaco.Position;
+      try {
+        const items = await getBodyCompletionItems(
+          syntheticModel,
+          syntheticPosition,
+          1,
+          null as any
+        );
+        const wordUntil = actualModel.getWordUntilPosition(actualPosition);
+        const range = {
+          startLineNumber: actualPosition.lineNumber,
+          endLineNumber: actualPosition.lineNumber,
+          startColumn: wordUntil.startColumn,
+          endColumn: actualPosition.column,
+        };
+        return { suggestions: items.map((item) => ({ ...item, range })) };
+      } finally {
+        syntheticModel.dispose();
+      }
+    },
+  };
 }

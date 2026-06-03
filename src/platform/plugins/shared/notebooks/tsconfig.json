@@ -10,7 +10,8 @@
     "@kbn/monaco",
     "@kbn/code-editor",
     "@kbn/i18n",
-    "@kbn/react-kibana-context-render"
+    "@kbn/react-kibana-context-render",
+    "@kbn/console-plugin"
   ],
   "exclude": ["target/**/*"]
 }

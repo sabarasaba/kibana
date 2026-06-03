@@ -8,9 +8,13 @@
  */
 
 import type { DevToolsSetup } from '@kbn/dev-tools-plugin/public';
+import type { ConsolePluginSetup, EsAutocompleteFacade } from '@kbn/console-plugin/public';
+
+export type { EsAutocompleteFacade };
 
 export interface NotebooksSetupDeps {
   devTools: DevToolsSetup;
+  console?: ConsolePluginSetup;
 }
 
 export interface NotebooksPluginSetup {}

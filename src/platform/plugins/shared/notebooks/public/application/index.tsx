@@ -11,12 +11,17 @@ import React from 'react';
 import { render, unmountComponentAtNode } from 'react-dom';
 import type { CoreStart } from '@kbn/core/public';
 import { KibanaRenderContextProvider } from '@kbn/react-kibana-context-render';
+import type { EsAutocompleteFacade } from '../types';
 import { Notebook } from './components/notebook';
 
-export function renderApp(coreStart: CoreStart, element: HTMLElement): () => void {
+export function renderApp(
+  coreStart: CoreStart,
+  element: HTMLElement,
+  esAutocompleteFacade?: EsAutocompleteFacade
+): () => void {
   render(
     <KibanaRenderContextProvider {...coreStart}>
-      <Notebook http={coreStart.http} />
+      <Notebook http={coreStart.http} esAutocompleteFacade={esAutocompleteFacade} />
     </KibanaRenderContextProvider>,
     element
   );

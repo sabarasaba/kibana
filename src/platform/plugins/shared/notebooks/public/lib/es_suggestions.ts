@@ -8,205 +8,187 @@
  */
 
 import type { monaco } from '@kbn/monaco';
+import type { EsAutocompleteFacade } from '../types';
 
-// CompletionItemKind values (avoid importing the enum directly)
-const Kind = {
-  Method: 0,
-  Function: 2,
-  Variable: 5,
-  Keyword: 13,
-  Snippet: 14,
-  Property: 9,
-} as const;
+// ── es.method() context detection ────────────────────────────────────────────
 
-// InsertTextRules.InsertAsSnippet = 4
+interface UrlContext {
+  kind: 'url';
+  method: string;
+  partialPath: string;
+}
+
+interface BodyContext {
+  kind: 'body';
+  method: string;
+  path: string;
+  bodyBeforeCursor: string;
+}
+
+type EsCallContext = UrlContext | BodyContext;
+
+const ES_CALL_RE = /\bes\.(get|post|put|delete|head)\s*\(\s*/gi;
+
+/**
+ * Returns true if the brace content (text AFTER the opening `{`) is still open —
+ * i.e. the object literal has not been closed before the cursor.
+ */
+function isInsideObject(afterOpenBrace: string): boolean {
+  let depth = 1;
+  let inString = false;
+  let stringChar = '';
+  for (let i = 0; i < afterOpenBrace.length; i++) {
+    const ch = afterOpenBrace[i];
+    if (inString) {
+      if (ch === '\\') { i++; continue; }
+      if (ch === stringChar) inString = false;
+    } else if (ch === '"' || ch === "'" || ch === '`') {
+      inString = true;
+      stringChar = ch;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) return false;
+    }
+  }
+  return depth > 0;
+}
+
+/**
+ * Scans textBeforeCursor backwards to detect if the cursor is inside
+ * an es.method('path') string argument or es.method('path', {body}) body object.
+ */
+function detectEsCallContext(textBeforeCursor: string): EsCallContext | null {
+  // Find the last es.method( occurrence before the cursor
+  let lastMatch: RegExpExecArray | null = null;
+  let m: RegExpExecArray | null;
+  ES_CALL_RE.lastIndex = 0;
+  while ((m = ES_CALL_RE.exec(textBeforeCursor)) !== null) {
+    lastMatch = m;
+  }
+  if (!lastMatch) return null;
+
+  const method = lastMatch[1];
+  const afterParen = textBeforeCursor.slice(lastMatch.index + lastMatch[0].length);
+
+  // Case 1: cursor is inside the first string argument (no closing quote after opening)
+  // e.g. es.get('/_cluster/h|   or   es.get("/_cluster/h|
+  const urlInProgress = afterParen.match(/^(['"`])([^'"`]*)$/s);
+  if (urlInProgress) {
+    return { kind: 'url', method, partialPath: urlInProgress[2] };
+  }
+
+  // Case 2: first arg is a complete string, cursor is inside the second arg body object
+  // e.g. es.post('/index/_search', { query: { |
+  const firstArgDone = afterParen.match(/^(['"`])([^'"`]*)['"`]\s*,\s*\{([\s\S]*)$/);
+  if (firstArgDone) {
+    const path = firstArgDone[2];
+    const bodyAfterBrace = firstArgDone[3];
+    if (isInsideObject(bodyAfterBrace)) {
+      return { kind: 'body', method, path, bodyBeforeCursor: bodyAfterBrace };
+    }
+  }
+
+  return null;
+}
+
+// ── static fallback completions ───────────────────────────────────────────────
+
+const Kind = { Method: 0, Function: 2, Variable: 5, Keyword: 13, Snippet: 14 } as const;
 const SNIPPET = 4;
-
 type Item = monaco.languages.CompletionItem;
 
-// ── es client ──────────────────────────────────────────────────────────────
-
-const ES_ITEMS: Array<Omit<Item, 'range'>> = [
-  {
-    label: 'es',
-    kind: Kind.Variable,
-    detail: 'Elasticsearch client',
-    insertText: 'es',
-    documentation: 'Injected Elasticsearch client. Methods: get, post, put, delete, head.',
-  },
-  {
-    label: 'es.get',
-    kind: Kind.Method,
-    detail: 'es.get(path) → Promise<any>',
-    insertText: "es.get('${1:/_cluster/health}')",
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'es.post',
-    kind: Kind.Method,
-    detail: 'es.post(path, body?) → Promise<any>',
-    insertText: "es.post('${1:/index/_search}', {\n  ${2}\n})",
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'es.put',
-    kind: Kind.Method,
-    detail: 'es.put(path, body?) → Promise<any>',
-    insertText: "es.put('${1:/index}', {\n  ${2}\n})",
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'es.delete',
-    kind: Kind.Method,
-    detail: 'es.delete(path) → Promise<any>',
-    insertText: "es.delete('${1:/index}')",
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'es.head',
-    kind: Kind.Method,
-    detail: 'es.head(path) → Promise<boolean>',
-    insertText: "es.head('${1:/index}')",
-    insertTextRules: SNIPPET,
-  },
-];
-
-// ── console ─────────────────────────────────────────────────────────────────
-
-const CONSOLE_ITEMS: Array<Omit<Item, 'range'>> = [
-  {
-    label: 'console.log',
-    kind: Kind.Method,
-    insertText: 'console.log(${1})',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'console.warn',
-    kind: Kind.Method,
-    insertText: 'console.warn(${1})',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'console.error',
-    kind: Kind.Method,
-    insertText: 'console.error(${1})',
-    insertTextRules: SNIPPET,
-  },
-];
-
-// ── JSON ────────────────────────────────────────────────────────────────────
-
-const JSON_ITEMS: Array<Omit<Item, 'range'>> = [
-  {
-    label: 'JSON.stringify',
-    kind: Kind.Method,
-    insertText: 'JSON.stringify(${1}, null, 2)',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'JSON.parse',
-    kind: Kind.Method,
-    insertText: 'JSON.parse(${1})',
-    insertTextRules: SNIPPET,
-  },
-];
-
-// ── keywords ─────────────────────────────────────────────────────────────────
-
-const KEYWORDS = [
+const KEYWORDS: Array<Omit<Item, 'range'>> = [
   'await', 'async', 'return', 'const', 'let', 'var',
   'true', 'false', 'null', 'undefined', 'typeof', 'instanceof',
   'new', 'this', 'throw', 'try', 'catch', 'finally',
-  'break', 'continue', 'delete', 'void', 'yield',
-].map((kw): Omit<Item, 'range'> => ({
-  label: kw,
-  kind: Kind.Keyword,
-  insertText: kw,
-}));
-
-// ── snippets ─────────────────────────────────────────────────────────────────
+  'break', 'continue', 'delete', 'void',
+].map((kw) => ({ label: kw, kind: Kind.Keyword, insertText: kw }));
 
 const SNIPPETS: Array<Omit<Item, 'range'>> = [
-  {
-    label: 'for...of',
-    kind: Kind.Snippet,
-    detail: 'for (const item of iterable)',
-    insertText: 'for (const ${1:item} of ${2:items}) {\n  ${3}\n}',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'if',
-    kind: Kind.Snippet,
-    insertText: 'if (${1:condition}) {\n  ${2}\n}',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'if...else',
-    kind: Kind.Snippet,
-    insertText: 'if (${1:condition}) {\n  ${2}\n} else {\n  ${3}\n}',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'try...catch',
-    kind: Kind.Snippet,
-    insertText: 'try {\n  ${1}\n} catch (err) {\n  console.error(err);\n}',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'async function',
-    kind: Kind.Snippet,
-    insertText: 'async function ${1:name}(${2}) {\n  ${3}\n}',
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'await es.get — cluster health',
-    kind: Kind.Snippet,
-    insertText: "const ${1:health} = await es.get('/_cluster/health');\nconsole.log(${1:health}.status);",
-    insertTextRules: SNIPPET,
-  },
-  {
-    label: 'for...of with es.delete',
-    kind: Kind.Snippet,
-    detail: 'Delete a list of indices',
-    insertText:
-      "const ${1:indices} = ['${2:index-1}', '${3:index-2}'];\nfor (const idx of ${1:indices}) {\n  await es.delete(`/\\${idx}`);\n  console.log(idx, 'deleted');\n}",
-    insertTextRules: SNIPPET,
-  },
+  { label: 'for...of', kind: Kind.Snippet, detail: 'for (const item of iterable)',
+    insertText: 'for (const ${1:item} of ${2:items}) {\n  ${3}\n}', insertTextRules: SNIPPET },
+  { label: 'if', kind: Kind.Snippet,
+    insertText: 'if (${1:condition}) {\n  ${2}\n}', insertTextRules: SNIPPET },
+  { label: 'try...catch', kind: Kind.Snippet,
+    insertText: 'try {\n  ${1}\n} catch (err) {\n  console.error(err);\n}', insertTextRules: SNIPPET },
+  { label: 'await es.get', kind: Kind.Snippet, detail: 'GET request',
+    insertText: "await es.get('${1:/_cluster/health}')", insertTextRules: SNIPPET },
+  { label: 'await es.post', kind: Kind.Snippet, detail: 'POST request',
+    insertText: "await es.post('${1:/index/_search}', {\n  ${2}\n})", insertTextRules: SNIPPET },
+  { label: 'await es.put', kind: Kind.Snippet, detail: 'PUT request',
+    insertText: "await es.put('${1:/index}', {\n  ${2}\n})", insertTextRules: SNIPPET },
+  { label: 'await es.delete', kind: Kind.Snippet, detail: 'DELETE request',
+    insertText: "await es.delete('${1:/index}')", insertTextRules: SNIPPET },
+  { label: 'await es.head', kind: Kind.Snippet, detail: 'HEAD request — resolves boolean',
+    insertText: "await es.head('${1:/index}')", insertTextRules: SNIPPET },
+  { label: 'console.log', kind: Kind.Method,
+    insertText: 'console.log(${1})', insertTextRules: SNIPPET },
+  { label: 'console.error', kind: Kind.Method,
+    insertText: 'console.error(${1})', insertTextRules: SNIPPET },
+  { label: 'JSON.stringify', kind: Kind.Method,
+    insertText: 'JSON.stringify(${1}, null, 2)', insertTextRules: SNIPPET },
+  { label: 'JSON.parse', kind: Kind.Method,
+    insertText: 'JSON.parse(${1})', insertTextRules: SNIPPET },
+  { label: 'es', kind: Kind.Variable, detail: 'Elasticsearch client', insertText: 'es' },
 ];
 
-// ── provider ─────────────────────────────────────────────────────────────────
-
-export function buildEsSuggestionProvider(): monaco.languages.CompletionItemProvider {
+function staticRange(position: monaco.Position, model: monaco.editor.ITextModel) {
+  const word = model.getWordUntilPosition(position);
   return {
-    triggerCharacters: ['.'],
-    provideCompletionItems(
+    startLineNumber: position.lineNumber,
+    endLineNumber: position.lineNumber,
+    startColumn: word.startColumn,
+    endColumn: position.column,
+  };
+}
+
+// ── main provider factory ─────────────────────────────────────────────────────
+
+export function buildJsSuggestionProvider(
+  facade?: EsAutocompleteFacade
+): monaco.languages.CompletionItemProvider {
+  return {
+    triggerCharacters: ['.', '/', "'", '"', ' '],
+    async provideCompletionItems(
       model: monaco.editor.ITextModel,
       position: monaco.Position
-    ): monaco.languages.ProviderResult<monaco.languages.CompletionList> {
-      const word = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
+    ): Promise<monaco.languages.CompletionList> {
+      // Gather all text up to the cursor for context detection
+      const textBeforeCursor = model.getValueInRange({
+        startLineNumber: 1,
+        startColumn: 1,
         endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
-      };
+        endColumn: position.column,
+      });
 
-      const linePrefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
+      const ctx = detectEsCallContext(textBeforeCursor);
 
-      let pool: Array<Omit<Item, 'range'>>;
-
-      if (linePrefix.endsWith('es.')) {
-        pool = ES_ITEMS.filter((i) => (i.label as string).startsWith('es.'));
-      } else if (linePrefix.endsWith('console.')) {
-        pool = CONSOLE_ITEMS;
-      } else if (linePrefix.endsWith('JSON.')) {
-        pool = JSON_ITEMS;
-      } else {
-        pool = [...ES_ITEMS.filter((i) => i.label === 'es'), ...KEYWORDS, ...SNIPPETS];
+      // URL path completions inside es.method('...')
+      if (ctx?.kind === 'url' && facade) {
+        try {
+          return await facade.completeUrl(ctx.method, ctx.partialPath, model, position);
+        } catch {
+          // fall through to static completions
+        }
       }
 
+      // Body completions inside es.method('path', {...})
+      if (ctx?.kind === 'body' && facade) {
+        try {
+          return await facade.completeBody(ctx.method, ctx.path, ctx.bodyBeforeCursor, model, position);
+        } catch {
+          // fall through to static completions
+        }
+      }
+
+      // Static keyword + snippet completions (always available)
+      if (ctx) return { suggestions: [] }; // inside es.* but no facade — don't pollute with keywords
+
+      const range = staticRange(position, model);
       return {
-        suggestions: pool.map((item) => ({ ...item, range } as Item)),
+        suggestions: [...KEYWORDS, ...SNIPPETS].map((item) => ({ ...item, range } as Item)),
       };
     },
   };

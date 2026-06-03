@@ -24,8 +24,52 @@ import type { SharePluginSetup, SharePluginStart, LocatorPublic } from '@kbn/sha
 
 import type { LicensingPluginStart } from '@kbn/licensing-plugin/public';
 import type { DataPublicPluginStart } from '@kbn/data-plugin/public';
+import type { monaco } from '@kbn/monaco';
 import type { EmbeddedConsoleView } from './embeddable_console';
 import type { ConsoleUILocatorParams } from './locator';
+
+/**
+ * Low-level ES autocomplete facade exposed to other plugins (e.g. Notebooks).
+ * Provides completion items for ES endpoint paths and request bodies without
+ * requiring the full Console editor stack.
+ */
+export interface EsAutocompleteFacade {
+  /**
+   * A Monaco CompletionItemProvider for CONSOLE_LANG_ID editors (request cells).
+   * Register once globally via monaco.languages.registerCompletionItemProvider.
+   */
+  requestCellProvider: monaco.languages.CompletionItemProvider;
+
+  /**
+   * Returns path completions for a partial ES URL inside a script cell es.method('...') call.
+   * @param method  HTTP method (GET, POST, etc.)
+   * @param pathBeforeCursor  Path typed so far, including the leading slash
+   * @param actualModel  The JavaScript editor model (used for range computation)
+   * @param actualPosition  Cursor position in the JavaScript editor
+   */
+  completeUrl(
+    method: string,
+    pathBeforeCursor: string,
+    actualModel: monaco.editor.ITextModel,
+    actualPosition: monaco.Position
+  ): Promise<monaco.languages.CompletionList>;
+
+  /**
+   * Returns body completions for an ES request body inside a script cell es.method('path', {...}) call.
+   * @param method  HTTP method
+   * @param path  Full ES path (e.g. /my-index/_search)
+   * @param bodyBeforeCursor  Body text from after the opening { up to the cursor
+   * @param actualModel  The JavaScript editor model
+   * @param actualPosition  Cursor position in the JavaScript editor
+   */
+  completeBody(
+    method: string,
+    path: string,
+    bodyBeforeCursor: string,
+    actualModel: monaco.editor.ITextModel,
+    actualPosition: monaco.Position
+  ): Promise<monaco.languages.CompletionList>;
+}
 
 export interface ConsoleStartServices {
   analytics: Pick<AnalyticsServiceStart, 'reportEvent'>;
@@ -62,6 +106,11 @@ export interface ConsolePluginSetup {
    * Public locator for the console UI
    */
   locator?: LocatorPublic<ConsoleUILocatorParams>;
+  /**
+   * Returns an ES autocomplete facade for use in other plugins (e.g. Notebooks).
+   * Provides completions for ES endpoint paths and request bodies.
+   */
+  getEsAutocompleteFacade?: () => EsAutocompleteFacade;
 }
 
 /**

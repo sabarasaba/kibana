@@ -23,12 +23,12 @@ function defaultCells(): Cell[] {
 export function loadCells(): Cell[] {
   try {
     const raw = window.localStorage.getItem(CELLS_KEY);
-    if (!raw) return defaultCells();
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return defaultCells();
+    if (!Array.isArray(parsed)) return [];
     return parsed as Cell[];
   } catch {
-    return defaultCells();
+    return [];
   }
 }
 

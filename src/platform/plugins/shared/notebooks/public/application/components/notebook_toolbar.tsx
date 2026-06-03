@@ -7,12 +7,15 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import {
   EuiButton,
   EuiButtonEmpty,
+  EuiContextMenuItem,
+  EuiContextMenuPanel,
   EuiFlexGroup,
   EuiFlexItem,
+  EuiPopover,
   EuiToolTip,
 } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
@@ -24,8 +27,6 @@ interface Props {
   onRestart: () => void;
   onAddRequest: () => void;
   onAddScript: () => void;
-  onExport: () => void;
-  onImport: (file: File) => void;
 }
 
 export function NotebookToolbar({
@@ -35,104 +36,78 @@ export function NotebookToolbar({
   onRestart,
   onAddRequest,
   onAddScript,
-  onExport,
-  onImport,
 }: Props) {
-  const importInputRef = useRef<HTMLInputElement>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+
+  const addButton = (
+    <EuiButton
+      size="s"
+      iconType="plusInCircle"
+      iconSide="left"
+      onClick={() => setAddMenuOpen((o) => !o)}
+    >
+      {i18n.translate('notebooks.toolbar.add', { defaultMessage: 'Add' })}
+    </EuiButton>
+  );
 
   return (
-    <EuiFlexGroup gutterSize="s" alignItems="center" wrap>
+    <EuiFlexGroup gutterSize="s" alignItems="center" responsive={false}>
+      {/* Run all / Cancel — merged toggle */}
       <EuiFlexItem grow={false}>
-        <EuiButton
-          size="s"
-          iconType="playFilled"
-          onClick={onRunAll}
-          isDisabled={isRunning}
-          fill
-        >
-          {i18n.translate('notebooks.toolbar.runAll', { defaultMessage: 'Run all' })}
-        </EuiButton>
-      </EuiFlexItem>
-
-      <EuiFlexItem grow={false}>
-        <EuiToolTip
-          content={i18n.translate('notebooks.toolbar.cancelTooltip', {
-            defaultMessage: 'Cancels execution and resets kernel state',
-          })}
-        >
-          <EuiButton
-            size="s"
-            iconType="stop"
-            onClick={onCancel}
-            isDisabled={!isRunning}
-            color="warning"
-          >
+        {isRunning ? (
+          <EuiButton size="s" iconType="stop" onClick={onCancel} color="warning" fill>
             {i18n.translate('notebooks.toolbar.cancel', { defaultMessage: 'Cancel' })}
           </EuiButton>
-        </EuiToolTip>
+        ) : (
+          <EuiButton size="s" iconType="playFilled" onClick={onRunAll} fill>
+            {i18n.translate('notebooks.toolbar.runAll', { defaultMessage: 'Run all' })}
+          </EuiButton>
+        )}
       </EuiFlexItem>
 
+      {/* Restart */}
       <EuiFlexItem grow={false}>
         <EuiToolTip
           content={i18n.translate('notebooks.toolbar.restartTooltip', {
-            defaultMessage: 'Clears all kernel variables and restarts',
+            defaultMessage: 'Clears all outputs and kernel variables',
           })}
         >
-          <EuiButtonEmpty
-            size="s"
-            iconType="refresh"
-            onClick={onRestart}
-            isDisabled={isRunning}
-          >
-            {i18n.translate('notebooks.toolbar.restart', { defaultMessage: 'Restart kernel' })}
+          <EuiButtonEmpty size="s" iconType="refresh" onClick={onRestart} isDisabled={isRunning}>
+            {i18n.translate('notebooks.toolbar.restart', { defaultMessage: 'Restart' })}
           </EuiButtonEmpty>
         </EuiToolTip>
       </EuiFlexItem>
 
-      <EuiFlexItem grow={false}>
-        <EuiButtonEmpty size="s" iconType="plusInCircle" onClick={onAddRequest}>
-          {i18n.translate('notebooks.toolbar.addRequest', { defaultMessage: '+ Request' })}
-        </EuiButtonEmpty>
-      </EuiFlexItem>
+      <EuiFlexItem />
 
+      {/* Add cell dropdown — far right */}
       <EuiFlexItem grow={false}>
-        <EuiButtonEmpty size="s" iconType="editorCodeBlock" onClick={onAddScript}>
-          {i18n.translate('notebooks.toolbar.addScript', { defaultMessage: '+ Script' })}
-        </EuiButtonEmpty>
-      </EuiFlexItem>
-
-      <EuiFlexItem grow>
-        {/* spacer */}
-      </EuiFlexItem>
-
-      <EuiFlexItem grow={false}>
-        <EuiButtonEmpty size="s" iconType="exportAction" onClick={onExport}>
-          {i18n.translate('notebooks.toolbar.export', { defaultMessage: 'Export' })}
-        </EuiButtonEmpty>
-      </EuiFlexItem>
-
-      <EuiFlexItem grow={false}>
-        <>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".json"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) onImport(file);
-              // reset so same file can be re-imported
-              e.target.value = '';
-            }}
+        <EuiPopover
+          button={addButton}
+          isOpen={addMenuOpen}
+          closePopover={() => setAddMenuOpen(false)}
+          panelPaddingSize="none"
+          anchorPosition="downRight"
+        >
+          <EuiContextMenuPanel
+            items={[
+              <EuiContextMenuItem
+                key="request"
+                icon="database"
+                onClick={() => { setAddMenuOpen(false); onAddRequest(); }}
+              >
+                {i18n.translate('notebooks.toolbar.addRequest', { defaultMessage: 'Request cell' })}
+              </EuiContextMenuItem>,
+              <EuiContextMenuItem
+                key="script"
+                icon="editorCodeBlock"
+                onClick={() => { setAddMenuOpen(false); onAddScript(); }}
+              >
+                {i18n.translate('notebooks.toolbar.addScript', { defaultMessage: 'Script cell' })}
+              </EuiContextMenuItem>,
+            ]}
           />
-          <EuiButtonEmpty
-            size="s"
-            iconType="importAction"
-            onClick={() => importInputRef.current?.click()}
-          >
-            {i18n.translate('notebooks.toolbar.import', { defaultMessage: 'Import' })}
-          </EuiButtonEmpty>
-        </>
+        </EuiPopover>
       </EuiFlexItem>
     </EuiFlexGroup>
   );

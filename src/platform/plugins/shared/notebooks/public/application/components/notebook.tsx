@@ -20,24 +20,20 @@ import type { DropResult } from '@elastic/eui';
 import { i18n } from '@kbn/i18n';
 import type { HttpSetup } from '@kbn/core/public';
 import { Kernel } from '../../lib/kernel';
-import type { Cell, CellStatus, ScriptOutput } from '../../types';
-import {
-  loadCells,
-  saveCells,
-  exportNotebook,
-  importNotebook,
-  genId,
-} from '../../services/storage';
+import type { Cell, CellStatus, ScriptOutput, EsAutocompleteFacade } from '../../types';
+import { loadCells, saveCells, genId } from '../../services/storage';
 import { NotebookToolbar } from './notebook_toolbar';
+import { NotebookEmptyState } from './empty_state';
 import { RequestCell } from './request_cell';
 import type { RequestCellHandle } from './request_cell';
 import { ScriptCell } from './script_cell';
 
 interface Props {
   http: HttpSetup;
+  esAutocompleteFacade?: EsAutocompleteFacade;
 }
 
-export function Notebook({ http }: Props) {
+export function Notebook({ http, esAutocompleteFacade }: Props) {
   const [cells, setCells] = useState<Cell[]>(() => loadCells());
   const [cellStatuses, setCellStatuses] = useState<Record<string, CellStatus>>({});
   const [scriptOutputs, setScriptOutputs] = useState<Record<string, ScriptOutput>>({});
@@ -94,9 +90,8 @@ export function Notebook({ http }: Props) {
     delete requestCellRefs.current[id];
     setCells((prev) => {
       const updated = prev.filter((c) => c.id !== id);
-      const result = updated.length > 0 ? updated : [{ id: genId(), type: 'request' as const, value: 'GET /_cluster/health' }];
-      saveCells(result);
-      return result;
+      saveCells(updated);
+      return updated;
     });
   }, []);
 
@@ -170,75 +165,74 @@ export function Notebook({ http }: Props) {
     kernelRef.current?.restart();
     setCellStatuses({});
     setScriptOutputs({});
+    // Also clear all request cell outputs
+    Object.values(requestCellRefs.current).forEach((ref) => ref?.clearOutput());
   }, []);
 
-  const handleExport = useCallback(() => exportNotebook(cells), [cells]);
-
-  const handleImport = useCallback(async (file: File) => {
-    try {
-      const imported = await importNotebook(file);
-      setCells(imported);
-      saveCells(imported);
-      setCellStatuses({});
-      setScriptOutputs({});
-    } catch (err) {
-      // TODO: surface as EuiToast in a later pass
-      console.error('Import failed:', err);
-    }
-  }, []);
 
   return (
-    <div style={{ padding: '24px', overflowY: 'auto', height: '100%' }}>
-      <NotebookToolbar
-        isRunning={isRunningAll}
-        onRunAll={handleRunAll}
-        onCancel={handleCancel}
-        onRestart={handleRestart}
-        onAddRequest={() => addCell('request')}
-        onAddScript={() => addCell('script')}
-        onExport={handleExport}
-        onImport={handleImport}
-      />
-
-      <EuiSpacer size="l" />
-
-      <EuiDragDropContext onDragEnd={onDragEnd}>
-        <EuiDroppable droppableId="notebookCells" spacing="m">
-          {cells.map((cell, index) => (
-            <EuiDraggable
-              key={cell.id}
-              draggableId={cell.id}
-              index={index}
-              customDragHandle
-              hasInteractiveChildren
-              spacing="m"
-            >
-              {(provided) =>
-                cell.type === 'request' ? (
-                  <RequestCell
-                    ref={(el) => { requestCellRefs.current[cell.id] = el; }}
-                    value={cell.value}
-                    onChange={(v) => updateCell(cell.id, v)}
-                    onRemove={() => removeCell(cell.id)}
-                    http={http}
-                    dragHandleProps={provided.dragHandleProps}
-                  />
-                ) : (
-                  <ScriptCell
-                    value={cell.value}
-                    onChange={(v) => updateCell(cell.id, v)}
-                    onRun={(v) => runScriptCell(cell.id, v)}
-                    onRemove={() => removeCell(cell.id)}
-                    status={cellStatuses[cell.id] ?? 'idle'}
-                    output={scriptOutputs[cell.id] ?? null}
-                    dragHandleProps={provided.dragHandleProps}
-                  />
-                )
-              }
-            </EuiDraggable>
-          ))}
-        </EuiDroppable>
-      </EuiDragDropContext>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto' }}>
+      {cells.length === 0 ? (
+        <div style={{ paddingTop: '200px', display: 'flex', justifyContent: 'center' }}>
+        <NotebookEmptyState
+          onAddRequest={() => addCell('request')}
+          onAddScript={() => addCell('script')}
+        />
+        </div>
+      ) : (
+        <>
+          <div style={{ padding: '16px 32px', borderBottom: '1px solid var(--euiBorderColor)', flexShrink: 0 }}>
+            <NotebookToolbar
+              isRunning={isRunningAll}
+              onRunAll={handleRunAll}
+              onCancel={handleCancel}
+              onRestart={handleRestart}
+              onAddRequest={() => addCell('request')}
+              onAddScript={() => addCell('script')}
+            />
+          </div>
+          <div style={{ padding: '24px', flexGrow: 1 }}>
+            <EuiDragDropContext onDragEnd={onDragEnd}>
+              <EuiDroppable droppableId="notebookCells" spacing="m">
+                {cells.map((cell, index) => (
+                  <EuiDraggable
+                    key={cell.id}
+                    draggableId={cell.id}
+                    index={index}
+                    customDragHandle
+                    hasInteractiveChildren
+                    spacing="m"
+                  >
+                    {(provided) =>
+                      cell.type === 'request' ? (
+                        <RequestCell
+                          ref={(el) => { requestCellRefs.current[cell.id] = el; }}
+                          value={cell.value}
+                          onChange={(v) => updateCell(cell.id, v)}
+                          onRemove={() => removeCell(cell.id)}
+                          http={http}
+                          dragHandleProps={provided.dragHandleProps}
+                        />
+                      ) : (
+                        <ScriptCell
+                          value={cell.value}
+                          onChange={(v) => updateCell(cell.id, v)}
+                          onRun={(v) => runScriptCell(cell.id, v)}
+                          onRemove={() => removeCell(cell.id)}
+                          status={cellStatuses[cell.id] ?? 'idle'}
+                          output={scriptOutputs[cell.id] ?? null}
+                          dragHandleProps={provided.dragHandleProps}
+                          esAutocompleteFacade={esAutocompleteFacade}
+                        />
+                      )
+                    }
+                  </EuiDraggable>
+                ))}
+              </EuiDroppable>
+            </EuiDragDropContext>
+          </div>
+        </>
+      )}
     </div>
   );
 }

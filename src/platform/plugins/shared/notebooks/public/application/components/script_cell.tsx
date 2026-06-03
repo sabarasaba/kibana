@@ -7,7 +7,7 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   EuiButtonIcon,
   EuiContextMenuItem,
@@ -24,8 +24,9 @@ import { i18n } from '@kbn/i18n';
 import { CodeEditor } from '@kbn/code-editor/code_editor';
 import { monaco, CODE_EDITOR_DEFAULT_THEME_ID } from '@kbn/monaco';
 import type { DraggableProvidedDragHandleProps } from '@elastic/eui';
-import { buildEsSuggestionProvider } from '../../lib/es_suggestions';
+import { buildJsSuggestionProvider } from '../../lib/es_suggestions';
 import { setupJsLanguage } from '../../lib/js_language_setup';
+import type { EsAutocompleteFacade } from '../../types';
 import { CellOutput } from './cell_output';
 import type { CellStatus, ScriptOutput } from '../../types';
 
@@ -39,14 +40,20 @@ interface Props {
   status: CellStatus;
   output: ScriptOutput | null;
   dragHandleProps: DraggableProvidedDragHandleProps | null | undefined;
+  esAutocompleteFacade?: EsAutocompleteFacade;
 }
 
-const suggestionProvider = buildEsSuggestionProvider();
-
-export function ScriptCell({ value, onChange, onRun, onRemove, status, output, dragHandleProps }: Props) {
+export function ScriptCell({
+  value, onChange, onRun, onRemove, status, output, dragHandleProps, esAutocompleteFacade,
+}: Props) {
   const isRunning = status === 'running';
   const [editorHeight, setEditorHeight] = useState(40);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const suggestionProvider = useMemo(
+    () => buildJsSuggestionProvider(esAutocompleteFacade),
+    [esAutocompleteFacade]
+  );
 
   const onEditorWillMount = useCallback(() => {
     setupJsLanguage();

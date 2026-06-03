@@ -40,6 +40,7 @@ interface CellOutput {
 
 export interface RequestCellHandle {
   run: () => Promise<void>;
+  clearOutput: () => void;
 }
 
 interface Props {
@@ -83,7 +84,10 @@ export const RequestCell = forwardRef<RequestCellHandle, Props>(function Request
     }
   }, [http, value]);
 
-  useImperativeHandle(ref, () => ({ run: () => run() }));
+  useImperativeHandle(ref, () => ({
+    run: () => run(),
+    clearOutput: () => { setOutput(null); setError(null); },
+  }));
 
   const outputBody = output?.body !== undefined ? JSON.stringify(output.body, null, 2) : null;
 
