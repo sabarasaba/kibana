@@ -16,10 +16,6 @@ function genId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function defaultCells(): Cell[] {
-  return [{ id: genId(), type: 'request', value: 'GET /_cluster/health' }];
-}
-
 export function loadCells(): Cell[] {
   try {
     const raw = window.localStorage.getItem(CELLS_KEY);

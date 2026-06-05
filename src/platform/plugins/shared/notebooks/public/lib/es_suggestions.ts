@@ -114,7 +114,7 @@ const SNIPPETS: Array<Omit<Item, 'range'>> = [
   { label: 'try...catch', kind: Kind.Snippet,
     insertText: 'try {\n  ${1}\n} catch (err) {\n  console.error(err);\n}', insertTextRules: SNIPPET },
   { label: 'await es.get', kind: Kind.Snippet, detail: 'GET request',
-    insertText: "await es.get('${1:/_cluster/health}')", insertTextRules: SNIPPET },
+    insertText: "await es.get(${1})", insertTextRules: SNIPPET },
   { label: 'await es.post', kind: Kind.Snippet, detail: 'POST request',
     insertText: "await es.post('${1:/index/_search}', {\n  ${2}\n})", insertTextRules: SNIPPET },
   { label: 'await es.put', kind: Kind.Snippet, detail: 'PUT request',
